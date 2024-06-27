@@ -1,0 +1,147 @@
+import Select from "react-select/creatable";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import api from "../utils/api";
+import { toast } from "react-toastify";
+
+/// HOC - Higher Order Component
+const Layout = ({ label, children }) => {
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="font-semibold">{label}</label>
+      {children}
+    </div>
+  );
+};
+
+const Create = () => {
+  const [ingredients, setIngredients] = useState([]);
+  const [instructions, setInstructions] = useState([]);
+
+  const navigate = useNavigate();
+
+  // api request
+  const { isLoading, mutate } = useMutation({
+    mutationFn: (newRecipe) => api.post("/api/recipes", newRecipe),
+
+    // when the request is successful
+    onSuccess: () => {
+      toast.success("New Recipe Created");
+      navigate("/");
+    },
+
+    // when the request fails
+    onError: () => {
+      toast.error("New Recipe Not Created");
+    },
+  });
+
+  // when the form is submitted
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // create a data from all inputs and textarea
+    const formData = new FormData(e.target);
+    let newRecipe = Object.fromEntries(formData.entries());
+
+    // add selected ingredients to newRecipe
+    newRecipe = {
+      ...newRecipe,
+      ingredients,
+      instructions,
+      image: `https://picsum.photos/5${Math.round(Math.random() * 89) + 10}`,
+    };
+
+    // send api request
+    mutate(newRecipe);
+  };
+
+  return (
+    <div className="flex-1 bg-gray-200 p-4 h-screen overflow-auto">
+      <form
+        onSubmit={handleSubmit}
+        className="max-w-2xl m-auto my-20 flex flex-col gap-10"
+      >
+        <h1 className="text-3xl font-bold text-red-400">Create a New Recipe</h1>
+
+        <Layout label="Title of Recipe">
+          <input
+            type="text"
+            className="rounded-md p-2 focus:outline-red-400"
+            name="recipeName"
+            required
+          />
+        </Layout>
+
+        <Layout label="Recipe Category">
+          <input
+            type="text"
+            className="rounded-md p-2 focus:outline-red-400"
+            name="category"
+            required
+          />
+        </Layout>
+
+        <Layout label="Time of Recipe">
+          <input
+            type="number"
+            className="rounded-md p-2 focus:outline-red-400"
+            name="recipeTime"
+            min={3}
+            max={200}
+            required
+          />
+        </Layout>
+
+        <Layout label="Recipe Ingredients">
+          <Select
+            onChange={(options) =>
+              setIngredients(options.map((opt) => opt.value))
+            }
+            isMulti
+            required
+          />
+        </Layout>
+
+        <Layout label="Recipe Steps (Go by order!)">
+          <Select
+            onChange={(options) =>
+              setInstructions(options.map((opt) => opt.value))
+            }
+            isMulti
+            required
+          />
+        </Layout>
+
+        <Layout label="Serving Proposal">
+          <textarea
+            className="rounded-md p-2 focus:outline-red-400"
+            name="servingSuggestion"
+            required
+          />
+        </Layout>
+
+        <div className="flex justify-end gap-6">
+          <Link
+            to={"/"}
+            className="bg-red-400 py-2 px-4 text-white 
+            font-semibold text-lg hover:bg-red-500"
+          >
+            Cancel
+          </Link>
+          <button
+            disabled={isLoading}
+            type="submit"
+            className="bg-green-400 py-2 px-4 text-white 
+            font-semibold text-lg hover:bg-green-500"
+          >
+            {isLoading ? "Loading..." : "Create Recipe"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default Create;
